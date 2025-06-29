@@ -30,7 +30,7 @@ public class JournalEntryService {
             journalEntry.setDate(LocalDateTime.now());
             JournalEntry saved = journalEntryRepository.save(journalEntry);
             user.getJournalEntries().add(saved);
-            userService.saveEntry(user);
+            userService.saveUser(user);
         }
         catch(Exception e){
             log.error("Error saving journal entry", e);
@@ -57,10 +57,24 @@ public class JournalEntryService {
         return journalEntryRepository.findById(id);
     }
 
-    public void deleteEntryById(ObjectId id, String userName) {
-        User user = userService.findUserByUsername(userName);
-        user.getJournalEntries().removeIf(journalEntry -> journalEntry.getId().equals(id));
-        userService.saveEntry(user);
-        journalEntryRepository.deleteById(id);
+    @Transactional
+    public boolean deleteEntryById(ObjectId id, String userName) {
+        boolean removed =  false;
+        try{
+            User user = userService.findUserByUsername(userName);
+            removed = user.getJournalEntries().removeIf(journalEntry -> journalEntry.getId().equals(id));
+            if (removed){
+                userService.saveUser(user);
+                journalEntryRepository.deleteById(id);
+            }
+        }
+        catch(Exception e){
+            log.error("Error deleting journal entry", e);
+            throw new RuntimeException("Error deleting journal entry");
+        }
+        return removed;
+
     }
+
+
 }
